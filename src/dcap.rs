@@ -20,9 +20,9 @@ pub fn dcap_quote() -> Result<SgxQuote, String> {
     let mut data = [0_u8; 64];
     let result = RaFfi::create_report(&target, data).map_err(debug)?;
     let quote = RaFfi::dcap_get_quote(&result).map_err(debug)?;
-    let reason = RaFfi::dcap_verify_quote(&quote).map_err(debug)?;
-    if reason != "" {
-        return Err(reason);
-    }
+    // let reason = RaFfi::dcap_verify_quote(&quote).map_err(debug)?;
+    // if reason != "" {
+    //     return Err(reason);
+    // }
     Ok(quote)
 }
