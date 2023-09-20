@@ -33,7 +33,7 @@ impl RpcEncrypt for ExchangeResult {
     type EncType = Aes128EncryptedMsg;
     fn encrypt<T: Serialize>(
         &self,
-        _k: &Self::EncKey,
+        _: &Self::EncKey,
         data: &T,
     ) -> Result<Self::EncType, JsonrpcErrorObj> {
         let data = serde_json::to_vec(data)
@@ -43,7 +43,7 @@ impl RpcEncrypt for ExchangeResult {
 
     fn decrypt<T: DeserializeOwned>(
         &self,
-        _k: &Self::EncKey,
+        _: &Self::EncKey,
         val: Self::EncType,
     ) -> Result<T, JsonrpcErrorObj> {
         let data = self

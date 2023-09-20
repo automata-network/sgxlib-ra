@@ -1,10 +1,11 @@
+use core::time::Duration;
 use std::prelude::v1::*;
 
-use crate::{IasReportRequest, IasReportResponse, SgxQuote};
+use crate::{IasReport, IasReportData, IasReportRequest, SgxQuote};
 
 use base::format::debug;
-use core::time::Duration;
 use eth_types::HexBytes;
+
 use net_http::{HttpClient, HttpMethod, HttpRequestBuilder, Uri};
 
 pub struct IasServer {
@@ -30,7 +31,7 @@ impl IasServer {
         }
     }
 
-    pub fn verify_quote(&self, quote: SgxQuote) -> Result<IasReportResponse, String> {
+    pub fn verify_quote(&self, quote: SgxQuote) -> Result<IasReport, String> {
         let quote_bytes = quote.as_bytes();
 
         // get a random nonce
@@ -49,7 +50,7 @@ impl IasServer {
 
         let api_uri: Uri = format!("{}/attestation/v4/report", self.base_url)
             .parse()
-            .map_err(debug)?;
+            .map_err(|err| format!("generate uri fail: {:?}", err))?;
 
         let api_key = self.api_key.clone();
         let mut req =
@@ -58,12 +59,44 @@ impl IasServer {
                     .header("Content-Type", "application/json")
                     .method(HttpMethod::Post);
             });
-        let response = self.client.send(&mut req, self.timeout).map_err(debug)?;
+        let response = self
+            .client
+            .send(&mut req, self.timeout)
+            .map_err(|err| format!("send request fail: {:?}", err))?;
         if !response.status.is_success() {
-            return Err(String::from_utf8_lossy(&response.body).into());
+            if response.status.is(|c| c == 400) {
+                return Err("invalid quote".into());
+            }
+            let msg = String::from_utf8_lossy(&response.body);
+            return Err(format!("verify fail: {:?}: {}", response.status, msg));
         }
-        let avr: IasReportResponse = serde_json::from_slice(&response.body).map_err(debug)?;
-        Ok(avr)
+        let sig = response
+            .headers
+            .get("X-IASReport-Signature")
+            .ok_or("should have report sig")?;
+        let cert = response
+            .headers
+            .get("X-IASReport-Signing-Certificate")
+            .ok_or("should have report cert")?
+            .clone();
+        let cert = cert
+            .replace("%20", " ")
+            .replace("%0A", "\n")
+            .replace("%2B", "+")
+            .replace("%2F", "/")
+            .replace("%3D", "=");
+        let _avr: IasReportData = serde_json::from_slice(&response.body).map_err(debug)?;
+
+        let sig = base64::decode(&sig)
+            .map_err(|err| format!("decode sig fail: {}", err))?
+            .into();
+
+        let report = IasReport {
+            raw: response.body.into(),
+            sig,
+            cert: cert.clone(),
+        };
+        Ok(report)
     }
 
     pub fn get_sigrl(&self, gid: &[u8; 4]) -> Result<Vec<u8>, String> {

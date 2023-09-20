@@ -11,8 +11,8 @@ use sgxlib::sgx_types::sgx_ra_msg2_t;
 use std::collections::BTreeMap;
 
 use crate::{
-    AttestationClientState, AttestationServerState, AttestationStateError, IasReportResponse,
-    IasServer, RaMsg1, RaMsg2, SessionKeys, SgxRaMsg3,
+    AttestationClientState, AttestationServerState, AttestationStateError, IasReport, IasServer,
+    RaMsg1, RaMsg2, SessionKeys, SgxRaMsg3,
 };
 
 pub mod __internal {
@@ -68,6 +68,7 @@ impl RaServer {
         let (prikey, pubkey) = secp256r1_gen_keypair();
         let mut tmp = [0_u8; 16];
         tmp.copy_from_slice(&spid);
+
         Self {
             sessions: Default::default(),
             prikey,
@@ -174,9 +175,9 @@ impl RaServer {
                 if !matches!(old_state, AttestationServerState::Msg0 { .. }) {
                     return Err(AttestationStateError::UnexpectedState);
                 }
-                let msg2_bytes = self
-                    .proc_msg1(data, session)
-                    .map_err(|err| AttestationStateError::ApplyMsg1Fail(err))?;
+                let msg2_bytes =
+                    RaUtil::proc_msg1(data, &self.ias_server, &self.prikey, self.spid, session)
+                        .map_err(|err| AttestationStateError::ApplyMsg1Fail(err))?;
 
                 session.state = new_state;
                 AttestationClientState::Msg2 { msg2_bytes }
@@ -188,16 +189,19 @@ impl RaServer {
                 if !matches!(old_state, AttestationServerState::Msg1 { .. }) {
                     return Err(AttestationStateError::UnexpectedState);
                 }
-                let is_verified = match self.proc_msg3(session, &data) {
+                let is_verified = match RaUtil::proc_msg3(&self.ias_server, session, &data) {
                     Ok(ias) => {
-                        let _quote = match ias.get_isv_enclave_quote_body() {
+                        let data = match ias.data() {
+                            Ok(data) => data,
+                            Err(_) => return Err(AttestationStateError::Msg3FailGetQuote),
+                        };
+                        let _quote = match data.get_isv_enclave_quote_body() {
                             Some(v) => v,
                             None => {
                                 return Err(AttestationStateError::Msg3FailGetQuote);
                             }
                         };
-                        let is_secure = ias.is_enclave_secure(self.conditional_secure);
-                        // let is_debug = quote.is_enclave_debug();
+                        let is_secure = data.is_enclave_secure(self.conditional_secure);
                         is_secure
                     }
                     Err(err) => {
@@ -239,33 +243,38 @@ impl RaServer {
             }
         })
     }
+}
 
-    fn proc_msg3(
-        &self,
-        session: &mut RaSession,
-        msg3: &[u8],
-    ) -> Result<IasReportResponse, AttestationStateError> {
-        let msg3 = match SgxRaMsg3::from_slice(msg3) {
-            Ok(v) => v,
-            Err(err) => return Err(AttestationStateError::InvalidMsg3(err)),
-        };
+pub struct RaUtil;
+impl RaUtil {
+    pub fn derive_secret_keys(
+        kdk: &Aes128Key,
+    ) -> Result<(Aes128Key, Aes128Key, Aes128Key, Aes128Key), String> {
+        let smk_data = [0x01, 'S' as u8, 'M' as u8, 'K' as u8, 0x00, 0x80, 0x00];
+        let mac = kdk.mac(&smk_data)?;
+        let smk = Aes128Key { key: mac.mac };
 
-        // verify sgx_ra_msg3_t using derived smk as described in Intel's manual.
-        if msg3.verify(&session.keys.smk) {
-            let avr = match self.ias_server.verify_quote(msg3.quote) {
-                Ok(v) => v,
-                Err(err) => {
-                    glog::error!("verify_quote in sp_proc_ra_msg3 meet error: {:?}", err);
-                    return Err(AttestationStateError::Msg3FailVerifyQuote);
-                }
-            };
-            Ok(avr)
-        } else {
-            Err(AttestationStateError::Msg3FailVerify)
-        }
+        let sk_data = [0x01, 'S' as u8, 'K' as u8, 0x00, 0x80, 0x00];
+        let mac = kdk.mac(&sk_data)?;
+        let sk = Aes128Key { key: mac.mac };
+
+        let mk_data = [0x01, 'M' as u8, 'K' as u8, 0x00, 0x80, 0x00];
+        let mac = kdk.mac(&mk_data)?;
+        let mk = Aes128Key { key: mac.mac };
+
+        let vk_data = [0x01, 'V' as u8, 'K' as u8, 0x00, 0x80, 0x00];
+        let mac = kdk.mac(&vk_data)?;
+        let vk = Aes128Key { key: mac.mac };
+        Ok((smk, sk, mk, vk))
     }
 
-    fn proc_msg1(&self, msg1: &HexBytes, session: &mut RaSession) -> Result<HexBytes, String> {
+    pub fn proc_msg1(
+        msg1: &HexBytes,
+        ias_server: &IasServer,
+        aas_prvkey: &Secp256r1PrivateKey,
+        spid: [u8; 16],
+        session: &mut RaSession,
+    ) -> Result<HexBytes, String> {
         let p_msg1 = RaMsg1::to_sgx(&msg1);
         glog::info!("gid: {:?}", p_msg1.gid);
 
@@ -288,25 +297,20 @@ impl RaServer {
         gb_ga[..64].copy_from_slice(&gb_bytes);
         gb_ga[64..].copy_from_slice(&ga_bytes);
 
-        let aas_prvkey = &self.prikey;
         let sign_gb_ga = aas_prvkey.sign_bytes(&gb_ga)?;
 
         let mut p_msg2 = sgx_ra_msg2_t::default();
         p_msg2.g_b = g_b.to_sgx_ec256_public();
-        p_msg2.spid.id = self.spid;
+        p_msg2.spid.id = spid;
         p_msg2.quote_type = 1_u16;
         p_msg2.kdf_id = 1_u16;
         p_msg2.sign_gb_ga = sign_gb_ga.into();
         p_msg2.mac = RaMsg2::mac(&session.keys.smk, &p_msg2)?.mac;
 
-        let sigrl = match self.ias_server.get_sigrl(&p_msg1.gid) {
+        let sigrl = match ias_server.get_sigrl(&p_msg1.gid) {
             Ok(sigrl) => sigrl,
             Err(err) => {
-                if self.ias_server_fallback {
-                    Vec::new()
-                } else {
-                    return Err(err);
-                }
+                return Err(err);
             }
         };
         p_msg2.sig_rl_size = sigrl.len() as u32;
@@ -315,30 +319,29 @@ impl RaServer {
         Ok(msg2_bytes)
     }
 
-    pub fn derive_secret_keys(
-        kdk: &Aes128Key,
-    ) -> Result<(Aes128Key, Aes128Key, Aes128Key, Aes128Key), String> {
-        let smk_data = [0x01, 'S' as u8, 'M' as u8, 'K' as u8, 0x00, 0x80, 0x00];
-        let mac = kdk.mac(&smk_data)?;
-        let smk = Aes128Key { key: mac.mac };
+    pub fn proc_msg3(
+        ias_server: &IasServer,
+        session: &mut RaSession,
+        msg3: &[u8],
+    ) -> Result<IasReport, AttestationStateError> {
+        let msg3 = match SgxRaMsg3::from_slice(msg3) {
+            Ok(v) => v,
+            Err(err) => return Err(AttestationStateError::InvalidMsg3(err)),
+        };
 
-        let sk_data = [0x01, 'S' as u8, 'K' as u8, 0x00, 0x80, 0x00];
-        let mac = kdk.mac(&sk_data)?;
-        let sk = Aes128Key { key: mac.mac };
-
-        let mk_data = [0x01, 'M' as u8, 'K' as u8, 0x00, 0x80, 0x00];
-        let mac = kdk.mac(&mk_data)?;
-        let mk = Aes128Key { key: mac.mac };
-
-        let vk_data = [0x01, 'V' as u8, 'K' as u8, 0x00, 0x80, 0x00];
-        let mac = kdk.mac(&vk_data)?;
-        let vk = Aes128Key { key: mac.mac };
-
-        glog::debug!("smk: {:02x?}", smk);
-        glog::debug!("sk : {:02x?}", sk);
-        glog::debug!("mk : {:02x?}", mk);
-        glog::debug!("vk : {:02x?}", vk);
-        Ok((smk, sk, mk, vk))
+        // verify sgx_ra_msg3_t using derived smk as described in Intel's manual.
+        if msg3.verify(&session.keys.smk) {
+            let avr = match ias_server.verify_quote(msg3.quote) {
+                Ok(v) => v,
+                Err(err) => {
+                    glog::error!("verify_quote in sp_proc_ra_msg3 meet error: {:?}", err);
+                    return Err(AttestationStateError::Msg3FailVerifyQuote);
+                }
+            };
+            Ok(avr)
+        } else {
+            Err(AttestationStateError::Msg3FailVerify)
+        }
     }
 }
 
@@ -364,7 +367,7 @@ pub trait Api: Sized + Send + Sync {
         Ok(next)
     }
 
-    fn pubkey(&self, _: RpcArgs) -> Result<Secp256r1PublicKey, JsonrpcErrorObj> {
+    fn pubkey(&self, _arg: RpcArgs) -> Result<Secp256r1PublicKey, JsonrpcErrorObj> {
         Ok(self.ctx().pubkey)
     }
 

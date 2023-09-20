@@ -13,8 +13,20 @@ pub use types::*;
 mod api;
 pub use api::*;
 
+#[cfg(feature = "epid")]
 mod client;
+#[cfg(feature = "epid")]
 pub use client::*;
 
 mod ffi;
 pub use ffi::*;
+
+#[cfg(all(feature = "epid"))]
+mod epid_report;
+#[cfg(all(feature = "epid"))]
+pub use epid_report::*;
+
+#[cfg(all(feature = "tstd", feature = "dcap"))]
+mod dcap;
+#[cfg(all(feature = "tstd", feature = "dcap"))]
+pub use dcap::*;
