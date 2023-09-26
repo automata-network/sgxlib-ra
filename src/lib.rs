@@ -30,3 +30,7 @@ pub use epid_report::*;
 mod dcap;
 #[cfg(all(feature = "tstd", feature = "dcap"))]
 pub use dcap::*;
+#[cfg(all(feature = "tstd", feature = "dcap"))]
+mod execution_client;
+#[cfg(all(feature = "tstd", feature = "dcap"))]
+pub use execution_client::*;

@@ -9,8 +9,8 @@ default = ["std"]
 sgx = ["sgxlib/sgx", "crypto/sgx", "sgx-dcap-ql-rs/sgx"]
 epid = ["sgx"]
 dcap = ["sgx"]
-std = ["sgx", "glog/std", "base/std", "serde/std", "eth_types/std", "net-http/std", "crypto/std", "base64/std", "serde_json/std", "jsonrpc/std", "rustls/std", "webpki/std", "sgx-dcap-ql-rs/std", "sgx-dcap-quoteverify-rs/std"]
-tstd = ["sgx", "sgxlib/tstd", "glog/tstd", "base/tstd", "serde/tstd", "eth_types/tstd", "net-http/tstd", "crypto/tstd", "base64/tstd", "serde_json/tstd", "jsonrpc/tstd", "rustls/tstd", "webpki/tstd", "sgx-dcap-ql-rs/tstd", "sgx-dcap-quoteverify-rs/tstd"]
+std = ["sgx", "glog/std", "base/std", "serde/std", "eth_types/std", "net-http/std", "crypto/std", "base64/std", "serde_json/std", "jsonrpc/std", "rustls/std", "webpki/std", "sgx-dcap-ql-rs/std", "sgx-dcap-quoteverify-rs/std", "solidity/std"]
+tstd = ["sgx", "sgxlib/tstd", "glog/tstd", "base/tstd", "serde/tstd", "eth_types/tstd", "net-http/tstd", "crypto/tstd", "base64/tstd", "serde_json/tstd", "jsonrpc/tstd", "rustls/tstd", "webpki/tstd", "sgx-dcap-ql-rs/tstd", "sgx-dcap-quoteverify-rs/tstd", "solidity/tstd"]
 
 [dependencies]
 sgxlib = { git = "https://github.com/automata-network/sgxlib", default-features = false, features = ["types", "tkey_exchange"] }
@@ -20,7 +20,7 @@ crypto = { git = "https://github.com/automata-network/crypto-rs", default-featur
 eth_types = { git = "https://github.com/automata-network/eth-types-rs", default-features = false }
 net-http = { git = "https://github.com/automata-network/net-http-rs", default-features = false }
 jsonrpc = { git = "https://github.com/automata-network/jsonrpc-rs", default-features = false }
-
+solidity = { git = "https://github.com/automata-network/solidity-rs", default-features = false }
 serde = { git = "https://github.com/automata-network/sgxlib-thirdparty", default-features = false }
 serde_json = { git = "https://github.com/automata-network/sgxlib-thirdparty", default-features = false }
 base64 = { git = "https://github.com/automata-network/sgxlib-thirdparty", default-features = false }
