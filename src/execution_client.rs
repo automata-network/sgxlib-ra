@@ -109,7 +109,7 @@ impl<C: RpcClient> ExecutionClient<C> {
         let mut tx = TransactionInner::Legacy(LegacyTx {
             nonce,
             gas_price,
-            gas: 8000000.into(),
+            gas: 9000000.into(),
             to: Some(self.to.clone()).into(),
             data: data.into(),
             ..Default::default()
