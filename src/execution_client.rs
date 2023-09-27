@@ -32,7 +32,7 @@ impl<C: RpcClient> ExecutionClient<C> {
         let chain_id: SU64 = client.rpc("eth_chainId", ()).unwrap();
         Self {
             client,
-            to: "0x0000000000000000000000000000000000000000".into(), // TODO use the actual dcap attestation smart contract
+            to: "0xF470A9ac6e5DcCbfBC45656459fFA2A3F10b471c".into(), // TODO use the actual dcap attestation smart contract
             alive: Alive::new(),
             chain_id: chain_id.as_u64(),
         }
@@ -83,8 +83,8 @@ impl<C: RpcClient> ExecutionClient<C> {
         self.client.rpc("eth_call", (call, block))
     }
 
-    fn send_tx(&self, signer: &Secp256k1PrivateKey, data: Vec<u8>) -> Result<SH256, RpcError> {
-        let addr = signer.public().eth_accountid().into();
+    fn send_tx(&self, submitter: &Secp256k1PrivateKey, data: Vec<u8>) -> Result<SH256, RpcError> {
+        let addr = submitter.public().eth_accountid().into();
         let nonce = self.nonce(&addr, BlockSelector::Latest)?;
         let gas_price = self.gas_price()?;
 
@@ -114,7 +114,7 @@ impl<C: RpcClient> ExecutionClient<C> {
             data: data.into(),
             ..Default::default()
         });
-        tx.sign(signer, self.chain_id);
+        tx.sign(submitter, self.chain_id);
 
         self.send_raw_transaction(&tx)
     }
@@ -141,7 +141,7 @@ impl<C: RpcClient> ExecutionClient<C> {
 
     pub fn submit_attestation_report(
         &self,
-        relay: &Secp256k1PrivateKey,
+        submitter: &Secp256k1PrivateKey,
         dcap_report: &[u8],
     ) -> Result<(), String> {
         let mut encoder = solidity::Encoder::new("submitAttestation");
@@ -151,18 +151,16 @@ impl<C: RpcClient> ExecutionClient<C> {
         let deps: Vec<(SH160, SH256)> = vec![];
         encoder.add(&deps);
         let data = encoder.encode();
-        let result = self.send_tx(relay, data).map_err(debug)?;
+        let result = self.send_tx(submitter, data).map_err(debug)?;
         self.wait_receipt(&result, Duration::from_secs(60))?;
         Ok(())
     } 
 }
 
 pub fn submit_dcap_quote(
-    signer: &Secp256k1PrivateKey,
+    el: &ExecutionClient,
+    submitter: &Secp256k1PrivateKey,
     dcap_report: &[u8]
-) {
-    let mut mix = MixRpcClient::new(None);
-    mix.add_endpoint(&Alive::new(), &["https://1rpc.io/ata/testnet".to_string()]).unwrap();
-    let el = ExecutionClient::new(mix);
-    el.submit_attestation_report(signer, dcap_report);
+) -> Result<(), String> {
+    el.submit_attestation_report(submitter, dcap_report)
 }

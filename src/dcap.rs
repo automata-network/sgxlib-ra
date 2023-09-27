@@ -4,11 +4,14 @@ use crypto::Secp256k1PrivateKey;
 use sgx_dcap_ql_rs::{sgx_qe_get_target_info, sgx_target_info_t};
 use sgxlib::sgx_types::{sgx_report_data_t, sgx_status_t};
 
-use crate::{RaFfi, SgxReport, SgxQuote};
+use crate::{ExecutionClient, RaFfi, SgxReport, SgxQuote};
 use crate::submit_dcap_quote;
 use eth_types::HexBytes;
 
-pub fn dcap_quote() -> Result<SgxQuote, String> {
+pub fn dcap_quote(
+    el: &ExecutionClient,
+    submitter: &Secp256k1PrivateKey,
+) -> Result<SgxQuote, String> {
     use crate::SgxTarget;
     use core::mem::size_of;
     use base::format::debug;
@@ -26,9 +29,8 @@ pub fn dcap_quote() -> Result<SgxQuote, String> {
     // if reason != "" {
     //     return Err(reason);
     // }
-
-    let private_key = "0x0000000000000000000000000000000000000000000000000000000000000000"; // TODO parse it from env
-    let prvkey: Secp256k1PrivateKey = private_key.into();
-    submit_dcap_quote(&prvkey, &quote.as_bytes());
+    if let Err(err) = submit_dcap_quote(el, submitter, &quote.as_bytes()) {
+        return Err(err);
+    }
     Ok(quote)
 }
