@@ -6,11 +6,13 @@ edition = "2021"
 
 [features]
 default = ["std"]
-sgx = ["sgxlib/sgx", "crypto/sgx", "sgx-dcap-ql-rs/sgx"]
+sgx = ["sgxlib/sgx", "crypto/sgx"]
 epid = ["sgx"]
-dcap = ["sgx"]
-std = ["sgx", "glog/std", "base/std", "serde/std", "eth_types/std", "net-http/std", "crypto/std", "base64/std", "serde_json/std", "jsonrpc/std", "rustls/std", "webpki/std", "sgx-dcap-ql-rs/std", "sgx-dcap-quoteverify-rs/std", "solidity/std"]
-tstd = ["sgx", "sgxlib/tstd", "glog/tstd", "base/tstd", "serde/tstd", "eth_types/tstd", "net-http/tstd", "crypto/tstd", "base64/tstd", "serde_json/tstd", "jsonrpc/tstd", "rustls/tstd", "webpki/tstd", "sgx-dcap-ql-rs/tstd", "sgx-dcap-quoteverify-rs/tstd", "solidity/tstd"]
+
+dcap_std = ["sgx", "sgx-dcap-ql-rs/std", "sgx-dcap-quoteverify-rs/std"]
+dcap = ["sgx", "sgx-dcap-ql-rs/tstd", "sgx-dcap-quoteverify-rs/tstd"]
+std = ["sgx", "glog/std", "base/std", "serde/std", "eth_types/std", "net-http/std", "crypto/std", "base64/std", "serde_json/std", "jsonrpc/std", "rustls/std", "webpki/std", "solidity/std"]
+tstd = ["sgx", "sgxlib/tstd", "glog/tstd", "base/tstd", "serde/tstd", "eth_types/tstd", "net-http/tstd", "crypto/tstd", "base64/tstd", "serde_json/tstd", "jsonrpc/tstd", "rustls/tstd", "webpki/tstd", "solidity/tstd"]
 
 [dependencies]
 sgxlib = { git = "https://github.com/automata-network/sgxlib", default-features = false, features = ["types", "tkey_exchange"] }
@@ -26,11 +28,14 @@ serde_json = { git = "https://github.com/automata-network/sgxlib-thirdparty", de
 base64 = { git = "https://github.com/automata-network/sgxlib-thirdparty", default-features = false }
 rustls = { git = "https://github.com/automata-network/sgxlib-thirdparty", default-features = false }
 webpki = { git = "https://github.com/automata-network/sgxlib-thirdparty", default-features = false }
-sgx-dcap-ql-rs = { git = "https://github.com/automata-network/sgx-dcap-rs", default-features = false }
-sgx-dcap-quoteverify-rs = { git = "https://github.com/automata-network/sgx-dcap-rs", default-features = false }
+
+#sgx-dcap-ql-rs = { git = "https://github.com/automata-network/sgx-dcap-rs", default-features = false, optional = true }
 
 memoffset     = { version = "0.5.4" }
 base16 = { version = "0.2.1", features = ["alloc"], default-features = false }
+
+sgx-dcap-ql-rs = { git = "https://github.com/automata-network/sgx-dcap-rs", default-features = false, optional = true }
+sgx-dcap-quoteverify-rs = { git = "https://github.com/automata-network/sgx-dcap-rs", default-features = false, optional = true }
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
 sgx_alloc = { git = "https://github.com/automata-network/incubator-teaclave-sgx-sdk", tag = "v1.1.4" }

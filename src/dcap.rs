@@ -1,6 +1,5 @@
 use std::prelude::v1::*;
 
-use crypto::Secp256k1PrivateKey;
 use sgx_dcap_ql_rs::{sgx_qe_get_target_info, sgx_target_info_t};
 use sgxlib::sgx_types::{sgx_report_data_t, sgx_status_t};
 

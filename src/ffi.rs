@@ -42,7 +42,7 @@ pub enum RaFfi {
         response: Option<HexBytes>,
     },
     #[cfg(feature = "epid")]
-    GetQuote {
+    EpidGetQuote {
         request: Option<(HexBytes, [u8; 16], HexBytes)>,
         response: Option<HexBytes>,
     },
@@ -92,14 +92,14 @@ impl RaFfi {
             },
 
             #[cfg(feature = "epid")]
-            Self::GetQuote {
+            Self::EpidGetQuote {
                 request: Some((data, spid, sigrl)),
                 response: None,
             } => {
                 let report = SgxReport::from_bytes(&data);
-                Self::GetQuote {
+                Self::EpidGetQuote {
                     request: None,
-                    response: Some(Self::get_quote(&report, spid, sigrl)?),
+                    response: Some(Self::epid_get_quote(&report, spid, sigrl)?),
                 }
             }
 
@@ -536,7 +536,7 @@ impl RaFfi {
         unreachable!()
     }
 
-    #[cfg(all(feature = "std", feature = "spid"))]
+    #[cfg(all(feature = "std", feature = "epid"))]
     pub fn sgx_ra_proc_msg2(
         context: sgx_ra_context_t,
         enclave_id: sgx_enclave_id_t,
