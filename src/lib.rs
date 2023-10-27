@@ -26,11 +26,11 @@ mod epid_report;
 #[cfg(all(feature = "epid"))]
 pub use epid_report::*;
 
-#[cfg(all(feature = "tstd", feature = "dcap"))]
+#[cfg(all(feature = "tstd", feature = "dcap_enabled"))]
 mod dcap;
-#[cfg(all(feature = "tstd", feature = "dcap"))]
+#[cfg(all(feature = "tstd", feature = "dcap_enabled"))]
 pub use dcap::*;
-#[cfg(all(feature = "tstd", feature = "dcap"))]
+#[cfg(all(feature = "tstd", feature = "dcap_enabled"))]
 mod execution_client;
-#[cfg(all(feature = "tstd", feature = "dcap"))]
+#[cfg(all(feature = "tstd", feature = "dcap_enabled"))]
 pub use execution_client::*;

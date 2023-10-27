@@ -50,14 +50,14 @@ pub enum RaFfi {
     InitQuote {
         response: Option<(HexBytes, [u8; 4])>,
     },
-    #[cfg(feature = "dcap")]
+    #[cfg(feature = "dcap_enabled")]
     DcapGetQuote {
         request: Option<(SgxReport,)>,
         response: Option<(SgxQuote,)>,
     },
-    #[cfg(feature = "dcap")]
+    #[cfg(feature = "dcap_enabled")]
     DcapGetTarget { response: Option<(SgxTarget,)> },
-    #[cfg(feature = "dcap")]
+    #[cfg(feature = "dcap_enabled")]
     DcapVerifyQuote {
         request: Option<(SgxQuote,)>,
         response: Option<(String,)>,
@@ -111,7 +111,7 @@ impl RaFfi {
                 }
             }
 
-            #[cfg(feature = "dcap")]
+            #[cfg(feature = "dcap_enabled")]
             Self::DcapGetQuote {
                 request: Some((data,)),
                 response: None,
@@ -123,7 +123,7 @@ impl RaFfi {
                 }
             }
 
-            #[cfg(feature = "dcap")]
+            #[cfg(feature = "dcap_enabled")]
             Self::DcapGetTarget { response: None } => {
                 let target = Self::dcap_get_target()?;
                 Self::DcapGetTarget {
@@ -131,7 +131,7 @@ impl RaFfi {
                 }
             }
 
-            #[cfg(feature = "dcap")]
+            #[cfg(feature = "dcap_enabled")]
             Self::DcapVerifyQuote {
                 request: Some((quote,)),
                 response: None,
@@ -205,7 +205,7 @@ impl RaFfi {
         Ok(result)
     }
 
-    #[cfg(all(feature = "tstd", feature = "dcap"))]
+    #[cfg(all(feature = "tstd", feature = "dcap_enabled"))]
     pub fn dcap_get_target() -> Result<SgxTarget, String> {
         let result = Self::DcapGetTarget { response: None }.call()?;
         if let Self::DcapGetTarget {
@@ -217,7 +217,7 @@ impl RaFfi {
         unreachable!()
     }
 
-    #[cfg(all(feature = "std", feature = "dcap"))]
+    #[cfg(all(feature = "std", feature = "dcap_enabled"))]
     pub fn dcap_get_target() -> Result<SgxTarget, String> {
         use sgx_dcap_ql_rs::{quote3_error_t, sgx_qe_get_target_info, sgx_target_info_t};
         use std::mem::size_of;
@@ -290,7 +290,7 @@ impl RaFfi {
         Ok(report)
     }
 
-    #[cfg(all(feature = "tstd", feature = "dcap"))]
+    #[cfg(all(feature = "tstd", feature = "dcap_enabled"))]
     pub fn dcap_get_quote(report: &SgxReport) -> Result<SgxQuote, String> {
         let result = RaFfi::DcapGetQuote {
             request: Some((report.clone(),)),
@@ -307,7 +307,7 @@ impl RaFfi {
         unreachable!()
     }
 
-    #[cfg(all(feature = "std", feature = "dcap"))]
+    #[cfg(all(feature = "std", feature = "dcap_enabled"))]
     pub fn dcap_get_quote(report: &SgxReport) -> Result<SgxQuote, String> {
         let app_report: &sgx_dcap_ql_rs::sgx_report_t =
             unsafe { core::mem::transmute(&report.raw) };
@@ -320,7 +320,7 @@ impl RaFfi {
         Ok(SgxQuote::from_bytes(quote).unwrap())
     }
 
-    #[cfg(all(feature = "tstd", feature = "dcap"))]
+    #[cfg(all(feature = "tstd", feature = "dcap_enabled"))]
     pub fn dcap_verify_quote(quote: &SgxQuote) -> Result<String, String> {
         let result = RaFfi::DcapVerifyQuote {
             request: Some((quote.clone(),)),
@@ -337,7 +337,7 @@ impl RaFfi {
         unreachable!()
     }
 
-    #[cfg(all(feature = "std", feature = "dcap"))]
+    #[cfg(all(feature = "std", feature = "dcap_enabled"))]
     pub fn dcap_verify_quote(quote: &SgxQuote) -> Result<String, String> {
         let quote = quote.as_bytes();
         use sgx_dcap_quoteverify_rs::{

@@ -9,8 +9,9 @@ default = ["std"]
 sgx = ["sgxlib/sgx", "crypto/sgx"]
 epid = ["sgx"]
 
-dcap_std = ["sgx", "sgx-dcap-ql-rs/std", "sgx-dcap-quoteverify-rs/std"]
-dcap = ["sgx", "sgx-dcap-ql-rs/tstd", "sgx-dcap-quoteverify-rs/tstd"]
+dcap_enabled = []
+dcap_std = ["sgx", "sgx-dcap-ql-rs/std", "sgx-dcap-quoteverify-rs/std", "dcap_enabled"]
+dcap = ["sgx", "sgx-dcap-ql-rs/tstd", "sgx-dcap-quoteverify-rs/tstd", "dcap_enabled"]
 std = ["sgx", "glog/std", "base/std", "serde/std", "eth_types/std", "net-http/std", "crypto/std", "base64/std", "serde_json/std", "jsonrpc/std", "rustls/std", "webpki/std", "solidity/std"]
 tstd = ["sgx", "sgxlib/tstd", "glog/tstd", "base/tstd", "serde/tstd", "eth_types/tstd", "net-http/tstd", "crypto/tstd", "base64/tstd", "serde_json/tstd", "jsonrpc/tstd", "rustls/tstd", "webpki/tstd", "solidity/tstd"]
 
