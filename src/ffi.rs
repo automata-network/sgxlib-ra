@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use std::prelude::v1::*;
 
 use base::format::debug;
@@ -25,6 +26,7 @@ use sgxlib::{
     to_result,
 };
 
+#[cfg(feature = "dcap_enabled")]
 use crate::{SgxQuote, SgxReport, SgxTarget};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -347,9 +349,9 @@ impl RaFfi {
         };
         use std::mem::size_of;
 
-        let collateral = tee_qv_get_collateral(&quote).map_err(debug)?;
+        let _collateral = tee_qv_get_collateral(&quote).map_err(debug)?;
 
-        let (supp_ver, supp_size) = tee_get_supplemental_data_version_and_size(&quote)
+        let (_supp_ver, supp_size) = tee_get_supplemental_data_version_and_size(&quote)
             .map_err(|e| format!("tee_get_quote_supplemental_data_size failed: {:?}", e))?;
         if supp_size != size_of::<sgx_ql_qv_supplemental_t>() as u32 {
             return Err("Quote supplemental data size is different between DCAP QVL and QvE, please make sure you installed DCAP QVL and QvE from same release.".into());
@@ -387,8 +389,8 @@ impl RaFfi {
         )
         .map_err(|e| format!("App: tee_verify_quote failed: {:?}", e))?;
 
-        let mut collateral_expiration_status = colla_exp_stat;
-        let mut quote_verification_result = qv_result;
+        let collateral_expiration_status = colla_exp_stat;
+        let quote_verification_result = qv_result;
 
         match quote_verification_result {
             sgx_ql_qv_result_t::SGX_QL_QV_RESULT_OK => {
