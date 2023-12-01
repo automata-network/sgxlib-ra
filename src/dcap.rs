@@ -1,6 +1,7 @@
 use std::prelude::v1::*;
 
 use crypto::Secp256k1PrivateKey;
+use jsonrpc::RpcClient;
 use sgx_dcap_ql_rs::{sgx_qe_get_target_info, sgx_target_info_t};
 use sgxlib::sgx_types::{sgx_report_data_t, sgx_status_t};
 
@@ -24,8 +25,8 @@ pub fn dcap_generate_quote(data: [u8; 64]) -> Result<SgxQuote, String> {
     Ok(quote)
 }
 
-pub fn dcap_quote(
-    el: &ExecutionClient,
+pub fn dcap_quote<C: RpcClient>(
+    el: &ExecutionClient<C>,
     submitter: &Secp256k1PrivateKey,
 ) -> Result<SgxQuote, String> {
     let quote = dcap_generate_quote([0_u8; 64])?;
@@ -33,4 +34,13 @@ pub fn dcap_quote(
         return Err(err);
     }
     Ok(quote)
+}
+
+pub fn dcap_verify_quote(quote: &SgxQuote) -> Result<(), String> {
+    use base::format::debug;
+    let reason = RaFfi::dcap_verify_quote(quote).map_err(debug)?;
+    if reason != "" {
+        glog::info!("{}", reason);
+    }
+    Ok(())
 }

@@ -9,7 +9,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use solidity::EncodeArg;
 
 #[derive(Debug, Clone)]
-pub struct ExecutionClient<C: RpcClient = MixRpcClient> {
+pub struct ExecutionClient<C: RpcClient> {
     client: JsonrpcClient<C>,
     to: SH160,
     alive: Alive,
@@ -157,8 +157,8 @@ impl<C: RpcClient> ExecutionClient<C> {
     } 
 }
 
-pub fn submit_dcap_quote(
-    el: &ExecutionClient,
+pub fn submit_dcap_quote<C: RpcClient>(
+    el: &ExecutionClient<C>,
     submitter: &Secp256k1PrivateKey,
     dcap_report: &[u8]
 ) -> Result<(), String> {
