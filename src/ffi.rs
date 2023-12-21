@@ -26,7 +26,7 @@ use sgxlib::{
     to_result,
 };
 
-#[cfg(feature = "dcap_enabled")]
+#[cfg(any(feature = "dcap_enabled", feature = "epid"))]
 use crate::{SgxQuote, SgxReport, SgxTarget};
 
 #[derive(Debug, Serialize, Deserialize)]
