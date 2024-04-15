@@ -9,6 +9,7 @@ use jsonrpc::{JsonrpcErrorObj, RpcArgs, RpcServer};
 use serde::{de::DeserializeOwned, Serialize};
 use sgxlib::sgx_types::sgx_ra_msg2_t;
 use std::collections::BTreeMap;
+use std::panic::RefUnwindSafe;
 
 use crate::{
     AttestationClientState, AttestationServerState, AttestationStateError, IasReport, IasServer,
@@ -345,7 +346,7 @@ impl RaUtil {
     }
 }
 
-pub trait Api: Sized + Send + Sync {
+pub trait Api: RefUnwindSafe + Sized + Send + Sync {
     fn ctx(&self) -> &RaServer;
 
     fn init_api<E>(&self, srv: &mut RpcServer<Self, E>)
