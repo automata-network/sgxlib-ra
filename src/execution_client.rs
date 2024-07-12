@@ -32,7 +32,7 @@ impl<C: RpcClient> ExecutionClient<C> {
         let chain_id: SU64 = client.rpc("eth_chainId", ()).unwrap();
         Self {
             client,
-            to: "0xF470A9ac6e5DcCbfBC45656459fFA2A3F10b471c".into(), // TODO use the actual dcap attestation smart contract
+            to: "0x5143B1d2Aff969b1edcfE1153D8Af17A731fB312".into(),
             alive: Alive::new(),
             chain_id: chain_id.as_u64(),
         }
