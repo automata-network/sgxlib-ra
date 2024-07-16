@@ -32,7 +32,7 @@ impl<C: RpcClient> ExecutionClient<C> {
         let chain_id: SU64 = client.rpc("eth_chainId", ()).unwrap();
         Self {
             client,
-            to: "0x5143B1d2Aff969b1edcfE1153D8Af17A731fB312".into(),
+            to: "0x6467C250d968A852D3Adcd962c43d2A05811cF20".into(),
             alive: Alive::new(),
             chain_id: chain_id.as_u64(),
         }
